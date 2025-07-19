@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Neetcode → GitHub",
+  "version": "1.0.0",
+  "description": "Push your Neetcode solutions & questions into a GitHub repo.",
+  "permissions": [
+    "storage",
+    "identity",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://neetcode.io/*",
+    "https://api.github.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Neetcode → GitHub"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://neetcode.io/problems/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
