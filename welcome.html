@@ -1,21 +1,65 @@
-<!-- welcome.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Welcome to NeetCode→GitHub</title>
-  <link rel="stylesheet" href="welcome.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NeetCode→GitHub</title>
+  <link rel="stylesheet" href="welcome.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Setup Your Repo</h1>
-    <p>Authenticated as <strong id="gh-user">…</strong></p>
-    <label for="repo-name">Repo name (e.g. <code>my-problems</code>)</label>
-    <input id="repo-name" type="text" placeholder="repo-name"/>
-    <button id="save-repo">Save & Continue</button>
-    <button id="logout">Log out</button>
-  </div>
+  <header>
+    <h1>NeetCode → GitHub</h1>
+    <button id="deauth-btn">De-authenticate</button>
+  </header>
+  <main class="container">
+    <!-- 1) Authenticate -->
+    <section id="auth-section" class="step">
+      <p class="lead">
+        Welcome! This extension lets you sync your NeetCode problems &amp; solutions straight to GitHub.
+      </p>
+      <button class="cta" id="auth-btn">Authenticate with GitHub</button>
+    </section>
+
+    <!-- 2) Enter Repo -->
+    <section id="repo-section" class="step">
+      <p class="lead">
+        You’re signed in as <strong id="gh-user"></strong>.<br/>
+        Next, enter the repository you want to sync to:
+      </p>
+      <div class="input-group">
+        <!-- ERROR ABOVE INPUT -->
+        <small class="error" id="repo-error">Repository name is required</small>
+        <input
+          type="text"
+          id="repo-input"
+          placeholder="e.g. my-neetcode-sols"
+        />
+      </div>
+      <button class="cta" id="save-repo-btn">Save Repository</button>
+    </section>
+
+    <!-- 3) Stats -->
+    <section id="stats-section" class="step">
+      <p class="lead">
+        Synced to <code id="gh-repo"></code>.<br/>
+        Here’s your progress:
+      </p>
+      <div id="stats">
+        <div class="stat">
+          <span id="total">0</span><br/><small>Solved</small>
+        </div>
+        <div class="stat easy">
+          <span id="easy">0</span><br/><small>Easy</small>
+        </div>
+        <div class="stat medium">
+          <span id="medium">0</span><br/><small>Medium</small>
+        </div>
+        <div class="stat hard">
+          <span id="hard">0</span><br/><small>Hard</small>
+        </div>
+      </div>
+    </section>
+  </main>
   <script src="welcome.js"></script>
 </body>
 </html>

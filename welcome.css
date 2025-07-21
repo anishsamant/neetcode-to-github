@@ -1,30 +1,118 @@
-/* welcome.css */
-* { box-sizing: border-box; }
+/* Base dark theme */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  margin: 0; font-family: system-ui, sans-serif;
-  background: #f5f5f5;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 100vh; padding: 1rem;
+  background: #0d0d1a;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
 }
-.container {
-  background: #fff; padding: 2rem;
-  border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  width: 100%; max-width: 400px; text-align: center;
+
+/* ===== Header ===== */
+header {
+  position: relative;           /* for the absolute button */
+  display: flex;
+  justify-content: center;      /* center the H1 */
+  align-items: center;          /* vertically center */
+  padding: 1rem 2rem;
+  background: #12122b;
+  border-bottom: 1px solid #333;
 }
-h1 { margin-bottom: 1rem; }
-label { display: block; margin-top: 1rem; text-align: left; }
-input {
-  width: 100%; padding: 0.75rem; margin-top: 0.5rem;
-  border: 1px solid #ccc; border-radius: 6px;
+
+/* Centered title */
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
 }
-button {
-  margin-top: 1rem; width: 100%;
-  padding: 0.75rem; border: none; border-radius: 6px;
-  background: #2d8cf0; color: #fff; font-size: 1rem;
+
+/* Top-right De-authenticate */
+#deauth-btn {
+  position: absolute;
+  top: 50%;
+  right: 2rem;
+  transform: translateY(-50%);
+  background: #f33;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  border-radius: 4px;
   cursor: pointer;
+  display: none;
 }
-button:hover { background: #1b6fb8; }
-#logout {
-  background: #e55353; margin-top: 0.5rem;
+#deauth-btn:hover {
+  background: #d00;
 }
-#logout:hover { background: #c12f2f; }
+
+
+/* Container & animation */
+.container {
+  max-width: 480px; margin: 3rem auto; padding: 0 1rem;
+  animation: fadeIn 0.6s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Steps */
+.step { display: none; text-align: center; }
+.step.active { display: block; }
+
+/* Lead text */
+.lead {
+  margin-bottom: 2rem; font-size: 1.1rem; color: #bbb;
+}
+
+/* Call-to-action buttons */
+.cta {
+  background: #0ff; color: #000; border: none;
+  padding: 0.75rem 1.5rem; font-size: 1rem;
+  border-radius: 4px; cursor: pointer; text-transform: uppercase;
+  letter-spacing: 0.5px; box-shadow: 0 0 8px #0ff;
+}
+.cta:hover { background: #0cc; }
+
+/* Input group */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+.input-group small.error {
+  display: none; /* hidden by default */
+  color: #f33;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+.input-group input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #1a1a2b;
+  color: #e0e0e0;
+}
+.input-group input.error {
+  border-color: #f33;
+}
+
+/* Stats grid */
+#stats {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1rem; margin-top: 1rem;
+}
+.stat {
+  background: #1a1a2b; padding: 1rem; border-radius: 6px;
+  box-shadow: inset 0 0 4px #000;
+}
+.stat span {
+  display: block; font-size: 1.5rem; font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.stat small { color: #ccc; }
+.stat.easy   { border-top: 4px solid #4caf50; }
+.stat.medium { border-top: 4px solid #ffc107; }
+.stat.hard   { border-top: 4px solid #f44336; }
