@@ -2,41 +2,28 @@
 console.log('[NeetCode→GitHub] content script loaded');
 
 const LANG_MAP = {
-  java: 'java', 'c++': 'cpp', cpp: 'cpp',
+  java: 'java',
+  'c++': 'cpp', cpp: 'cpp',
   python: 'py', python3: 'py',
   javascript: 'js', typescript: 'ts'
 };
 
 let cache = null;
 
-// ——————————————————
-// Gather all metadata
-// ——————————————————
+// —————————————————————————————
+// Gather everything before tab switch
+// —————————————————————————————
 function gatherMetadata() {
-  // 1) Code: CodeMirror → Monaco → view-line → textarea
-  const cmEl = document.querySelector('.CodeMirror');
-  let code = '';
-  if (cmEl?.CodeMirror) {
-    code = cmEl.CodeMirror.getValue();
-  } else if (window.monaco?.editor) {
-    const m = monaco.editor.getModels()[0];
-    code = m ? m.getValue() : '';
-  } else {
-    const lines = document.querySelectorAll('.view-line');
-    if (lines.length) {
-      code = Array.from(lines).map(l => l.textContent).join('\n');
-    } else {
-      code = document.querySelector('textarea')?.value || '';
-    }
-  }
+  // 1) Solution code
+  const code = getCode();
   if (!code.trim()) return null;
 
-  // 2) Title
+  // 2) Problem title
   const title = document
     .querySelector('.question-tab .flex-container-row h1')
     ?.textContent.trim() || 'Solution';
 
-  // 3) Full statement HTML, minus any “Copy” buttons
+  // 3) Full statement HTML
   const stmtEl = document.querySelector('app-prompt app-article');
   let stmtHTML = '';
   if (stmtEl) {
@@ -46,7 +33,7 @@ function gatherMetadata() {
     stmtHTML = clone.innerHTML;
   }
 
-  // 4) Category: difficulty → first tag → breadcrumbs → “General”
+  // 4) Category: difficulty → tag → breadcrumb → “General”
   let category = '';
   const diff = document.querySelector('.difficulty-btn');
   if (diff) category = diff.textContent.trim();
@@ -56,33 +43,74 @@ function gatherMetadata() {
   }
   if (!category) {
     const crumbs = [...document.querySelectorAll('.breadcrumb li')]
-      .map(li => li.textContent.trim())
-      .filter(Boolean);
+      .map(li => li.textContent.trim()).filter(Boolean);
     category = crumbs[1] || crumbs[0] || 'General';
   }
   category = category.replace(/[\/\\\s]+/g, '_');
 
-  // 5) Extension from language dropdown → CodeMirror mode
-  let rawLang = document
-    .querySelector('.dropdown-item.selected-item')?.textContent.trim().toLowerCase()
-    || '';
-  if (!rawLang && cmEl?.CodeMirror) {
-    rawLang = cmEl.CodeMirror.getOption('mode') || '';
-  }
-  let ext = 'txt';
-  for (const k in LANG_MAP) {
-    if (rawLang.includes(k)) {
-      ext = LANG_MAP[k];
-      break;
-    }
-  }
+  // 5) File extension
+  const ext = detectExtension(code);
 
   return { code, title, stmtHTML, category, ext };
 }
 
-// ——————————————————
-// Inject button beside <h1>
-// ——————————————————
+// —————————————————————————————
+// Robust extension detection
+// —————————————————————————————
+function detectExtension(code) {
+  let raw = '';
+
+  // a) From the visible dropdown item
+  const dd = document.querySelector('.dropdown-item.selected-item');
+  if (dd) raw = dd.textContent.trim().toLowerCase();
+
+  // b) Fallback to CodeMirror mode
+  if (!raw) {
+    const cm = document.querySelector('.CodeMirror');
+    if (cm?.CodeMirror) {
+      const mode = cm.CodeMirror.getOption('mode');
+      raw = typeof mode === 'string' ? mode.toLowerCase() : '';
+    }
+  }
+
+  // c) Map via LANG_MAP
+  for (const key in LANG_MAP) {
+    if (raw.includes(key)) return LANG_MAP[key];
+  }
+
+  // d) Heuristic on code content
+  if (/^\s*#include\s+<.*>/m.test(code)) return 'cpp';
+  if (/^\s*import\s+java\./m.test(code))   return 'java';
+  if (/^\s*def\s+\w+/m.test(code))         return 'py';
+  if (/=>|function|\bconsole\./.test(code))return 'js';
+
+  // e) Default fallback
+  return 'txt';
+}
+
+// —————————————————————————————
+// Get full editor code
+// —————————————————————————————
+function getCode() {
+  const cmEl = document.querySelector('.CodeMirror');
+  if (cmEl?.CodeMirror) return cmEl.CodeMirror.getValue();
+
+  if (window.monaco?.editor) {
+    const m = monaco.editor.getModels()[0];
+    if (m) return m.getValue();
+  }
+
+  const lines = document.querySelectorAll('.view-line');
+  if (lines.length) {
+    return Array.from(lines).map(l => l.textContent).join('\n');
+  }
+
+  return document.querySelector('textarea')?.value || '';
+}
+
+// —————————————————————————————
+// Inject “Push to GitHub” button
+// —————————————————————————————
 function injectButton() {
   const row = document.querySelector('.question-tab .flex-container-row');
   if (!row || row.querySelector('#push-gh-btn')) return;
@@ -94,21 +122,21 @@ function injectButton() {
   btn.textContent = 'Push to GitHub';
   Object.assign(btn.style, {
     marginLeft: '8px',
-    padding:    '4px 10px',
+    padding: '4px 10px',
     background: '#28a745',
-    color:      '#fff',
-    border:     'none',
+    color: '#fff',
+    border: 'none',
     borderRadius: '4px',
-    cursor:     'pointer',
-    fontSize:   '0.9rem'
+    cursor: 'pointer',
+    fontSize: '0.9rem'
   });
   titleEl.insertAdjacentElement('afterend', btn);
   btn.addEventListener('click', pushAll);
 }
 
-// ——————————————————
-// Hook auto-push ~3s after clicking Submit
-// ——————————————————
+// —————————————————————————————
+// Auto-push hook on Submit
+// —————————————————————————————
 function hookAutoPush() {
   const submitBtn = document.querySelector(
     'button.button.is-success[data-tooltip*="Enter"]'
@@ -117,15 +145,14 @@ function hookAutoPush() {
   submitBtn._gitHooked = true;
 
   submitBtn.addEventListener('click', () => {
-    // Cache metadata _before_ the SPA switches tabs
     cache = gatherMetadata();
     setTimeout(pushAll, 3000);
   });
 }
 
-// ——————————————————
-// Observe SPA changes
-// ——————————————————
+// —————————————————————————————
+// Observe SPA nav & load
+// —————————————————————————————
 new MutationObserver(() => {
   injectButton();
   hookAutoPush();
@@ -133,19 +160,18 @@ new MutationObserver(() => {
 injectButton();
 hookAutoPush();
 
-// ——————————————————
+// —————————————————————————————
 // Main push logic
-// ——————————————————
+// —————————————————————————————
 async function pushAll() {
   console.log('[NeetCode→GitHub] pushAll()');
   const { githubToken, githubLogin, repoName } = await chrome.storage.local.get(
-    ['githubToken', 'githubLogin', 'repoName']
+    ['githubToken','githubLogin','repoName']
   );
   if (!githubToken || !githubLogin || !repoName) {
     return alert('Please authenticate & set your repo first.');
   }
 
-  // Use cached metadata if present, else re-gather
   const meta = cache || gatherMetadata();
   cache = null;
   if (!meta) return alert('Failed to gather problem data.');
@@ -155,10 +181,20 @@ async function pushAll() {
 
   const safeTitle = title.replace(/[\/\\\s]+/g, '_');
   const base = `${category}/${safeTitle}`;
+
   const files = [
-    { path:`${base}/${safeTitle}.${ext}`, content:btoa(unescape(encodeURIComponent(code))) },
-    { path:`${base}/${safeTitle}.md`,     content:btoa(unescape(encodeURIComponent(md))) },
-    { path:`${base}/notes.md`,            content:btoa('') }
+    {
+      path: `${base}/${safeTitle}.${ext}`,
+      content: btoa(unescape(encodeURIComponent(code)))
+    },
+    {
+      path: `${base}/${safeTitle}.md`,
+      content: btoa(unescape(encodeURIComponent(md)))
+    },
+    {
+      path: `${base}/notes.md`,
+      content: btoa('')
+    }
   ];
 
   for (const f of files) {
@@ -167,15 +203,12 @@ async function pushAll() {
   alert('🎉 Pushed to GitHub!');
 }
 
-// ——————————————————
+// —————————————————————————————
 // GitHub create/update helper
-// ——————————————————
+// —————————————————————————————
 async function upsert(user, repo, token, path, content) {
   const url = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
-  const res = await fetch(url, {
-    headers: { Authorization:`token ${token}` }
-  });
-  // 404 is okay (means file not exist)
+  const res = await fetch(url, { headers: { Authorization: `token ${token}` } });
   const sha = res.status === 200 ? (await res.json()).sha : '';
   await fetch(url, {
     method: 'PUT',
