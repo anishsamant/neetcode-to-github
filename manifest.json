@@ -21,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://neetcode.io/problems/*"],
+      "matches": ["https://neetcode.io/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

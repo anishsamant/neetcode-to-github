@@ -1,3 +1,4 @@
+// welcome.js
 (async function() {
   // Elements
   const authSection  = document.getElementById('auth-section');
@@ -86,22 +87,60 @@
     }
   });
 
+  // Helper: get default branch (don't assume 'main')
+  async function getDefaultBranch(user, repo, token) {
+    const r = await fetch(`https://api.github.com/repos/${user}/${repo}`, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      }
+    });
+    if (!r.ok) throw new Error(`Repo meta failed: ${r.status}`);
+    const meta = await r.json();
+    return meta.default_branch || 'main';
+  }
+
   // LOAD STATS
   async function loadStats(user, token, repo) {
     try {
-      const headers = { Authorization: `token ${token}` };
-      const root = await fetch(
-        `https://api.github.com/repos/${user}/${repo}/contents?ref=main`,
+      const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      };
+
+      // 1) Get default branch
+      const branch = await getDefaultBranch(user, repo, token);
+
+      // 2) List root at default branch; handle empty repo (404 on /contents for uninitialized repo)
+      const rootResp = await fetch(
+        `https://api.github.com/repos/${user}/${repo}/contents?ref=${encodeURIComponent(branch)}`,
         { headers }
-      ).then(r => r.json());
+      );
+
+      if (rootResp.status === 404) {
+        // Uninitialized/empty repository
+        easyEl.textContent = '0';
+        mediumEl.textContent = '0';
+        hardEl.textContent = '0';
+        totalEl.textContent = '0';
+        return;
+      }
+      if (!rootResp.ok) {
+        throw new Error(`Root listing failed: ${rootResp.status}`);
+      }
+
+      const root = await rootResp.json();
 
       async function countSolved(folder) {
         const dir = root.find(
-          e => e.name.toLowerCase() === folder.toLowerCase() && e.type === 'dir'
+          e => e.type === 'dir' && e.name.toLowerCase() === folder.toLowerCase()
         );
         if (!dir) return 0;
-        const list = await fetch(dir.url, { headers }).then(r => r.json());
-        return list.filter(e => e.type === 'dir').length;
+        const listResp = await fetch(dir.url, { headers });
+        if (!listResp.ok) return 0;
+        const list = await listResp.json();
+        // Count problem directories inside the difficulty folder
+        return Array.isArray(list) ? list.filter(e => e.type === 'dir').length : 0;
       }
 
       const [easyCount, midCount, hardCount] = await Promise.all([
@@ -110,12 +149,17 @@
         countSolved('Hard')
       ]);
 
-      easyEl.textContent   = easyCount;
-      mediumEl.textContent = midCount;
-      hardEl.textContent   = hardCount;
-      totalEl.textContent  = easyCount + midCount + hardCount;
+      easyEl.textContent   = String(easyCount);
+      mediumEl.textContent = String(midCount);
+      hardEl.textContent   = String(hardCount);
+      totalEl.textContent  = String(easyCount + midCount + hardCount);
     } catch (e) {
       console.error('Stats load failed', e);
+      // Soft-fail to zeros
+      easyEl.textContent = '0';
+      mediumEl.textContent = '0';
+      hardEl.textContent = '0';
+      totalEl.textContent = '0';
     }
   }
 })();
